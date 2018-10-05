@@ -6,9 +6,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-typedef enum {
+#include "p2.h"
+typedef enum{
     false, true
 } bool;
+extern int flag_ampersand;
+/*handling '\','~',' ','\t','$',';','\n','|','>','<','<<'
+ * returning negative word count if $
+ * returning path if starting with ~
+ * separate word and return 0 if there's ';' '\n' '$'
+ * returning word count if ' ' '\t'
+ * Separate word and return 1 if '|' '>' '<' '&'
+ * separate word and return 2 if '<<'
+ * separate word not returning if ' ' '\t'
+ * not separate word if '\'
+ * return -255 if EOF
+ */
 int getword(char *w)
 {
     int iochar;
@@ -26,7 +39,7 @@ int getword(char *w)
         else if (backslash == true) {
             backslash = false;
             if (iochar == '\n') {  //if a backslash preceding a newline, treating it as a space
-               return printOutput(w, wordCount, negative);
+                return printOutput(w, wordCount, negative);
             }
             * (w + wordCount) = iochar;
             wordCount++;
@@ -48,7 +61,7 @@ int getword(char *w)
                     return printOutput(w, wordCount, negative);
                 }
                 //if it's leading zeros or trailing zeros, reset flag and continue
-
+                
                 continue;
             }
             if (iochar == '$' && wordCount == 0 && negative == false) {
@@ -123,11 +136,12 @@ int getword(char *w)
                     return printOutput(w, wordCount, negative);
                 } else {
                     iochar = getchar();
-                    if (iochar == '\n') {  //if & followed by a newline, return -254 with s="&"
+                    if (iochar == '\n') {  //if & followed by a newline, return 1 with s="&"
                         ungetc('\n',stdin);
                         * w = '&';
                         * (w + 1) = '\0';
-                        return -254;
+                        flag_ampersand = 1;
+                        return 1;
                     }
                     else {
                         ungetc(iochar, stdin);
