@@ -5,6 +5,8 @@
 #define MAXWORDS 100
 #include "getword.h"
 #include <math.h>
+#include "p2.h"
+extern int flag_ampersand;
 typedef enum {
     false, true
 } bool;
@@ -15,7 +17,6 @@ char * output_file;
 int flag_in = 0;  //0 indicating there's no input flag
 int flag_out = 0;   //0 indicating there's no output flag
 int flag_pipeline = 0;   //0 indicating there's no pipeline flag
-int flag_ampersand = 0;   //0 indicating there's no ampersand flag
 int pipeIndex = 0;
 int main(int argc, char * argv[])
 {
@@ -30,9 +31,17 @@ int main(int argc, char * argv[])
             break;
         }
         if (num_arg == -2) {
-            fprintf(stderr, "Redirection error.\n");
+            fprintf(stderr, "Ambiguous output redirect.\n");
             fflush(stderr);
             continue;
+        }
+        if (num_argc == -3) {  //returning -3 meaning there are more than 1 pipe
+            fprintf(stderr, "Multiple pipeline not allowed.\n");
+            fflush(stderr);
+            continue;
+        }
+        if (flag_ampersand == 1) {
+            parent not waiting child
         }
     }
 
@@ -48,15 +57,11 @@ int parse() {
             newargv[argc] = NULL;
             return abs(reValue);
         }
-        else if (reValue == -254) {  //getting return value -254 if there's '&' at the end
-            flag_ampersand = 1;
-            continue;
-        }
         else if(reValue == 0) {  //finish collecting words when see '$' '\n' ';'
             newargv[argc] = NULL;
             return argc;
         }
-        else if(reValue == 1) {  //handle metacharacter '|' '>' '<'
+        else if(reValue == 1) {  //handle metacharacter '|' '>' '<' '&'
             if (s[length] == '<') {
                 if (flag_in >= 1) {  //if there are more than one '<'
                     return -2;  //-2 indicating redirection error
@@ -79,7 +84,7 @@ int parse() {
                     continue;
                 }
             }
-            if (s[length] == '>') {
+            else if (s[length] == '>') {
                 if (flag_out >= 1) {  //redirectiion error occurrs when there is more than one '>'
                     return -2;  //-2 indicating redirection error
                 }
@@ -100,12 +105,22 @@ int parse() {
                     continue;
                 }
             }
+            else if (s[length] == '|') {
+                if (flag_pipeline >= 1) {  //if there's alreayd one pipe
+                    return -3;
+                }
+                flag_pipeline = 1;
+                pipeIndex = argc;
+                newargv[argc++] = NULL;
+                length = length + 2;
+                continue;
+            }
             else {  //otherwise treat this one length character as an argument
                 newargv[argc++] = (s + length);
                 length = length + abs(reValue) + 1;
                 continue;
             }
-        }
+        }  //end handling metacharacter '|' '>' '<' '&'
         else {  // encountering normal words
             newargv[argc++] = (s + length);
             length = length + abs(reValue) + 1;  //pay attention here, the return value might be negative because of '$'
